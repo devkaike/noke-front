@@ -7,6 +7,21 @@ extension PlayerLevelX on PlayerLevel {
         PlayerLevel.avancado => 'Avançado',
         PlayerLevel.profissional => 'Profissional',
       };
+
+  String get apiValue => switch (this) {
+        PlayerLevel.iniciante => 'INICIANTE',
+        PlayerLevel.intermediario => 'INTERMEDIARIO',
+        PlayerLevel.avancado => 'AVANCADO',
+        PlayerLevel.profissional => 'PROFISSIONAL',
+      };
+
+  static PlayerLevel fromApi(String value) => switch (value) {
+        'INICIANTE' => PlayerLevel.iniciante,
+        'INTERMEDIARIO' => PlayerLevel.intermediario,
+        'AVANCADO' => PlayerLevel.avancado,
+        'PROFISSIONAL' => PlayerLevel.profissional,
+        _ => PlayerLevel.iniciante,
+      };
 }
 
 class Player {
@@ -14,7 +29,7 @@ class Player {
   final String name;
   final PlayerLevel level;
   final int points;
-  final int ranking;
+  final int? ranking;
   final bool online;
   final double? distanceKm;
 
@@ -23,10 +38,21 @@ class Player {
     required this.name,
     required this.level,
     required this.points,
-    required this.ranking,
+    this.ranking,
     this.online = false,
     this.distanceKm,
   });
+
+  factory Player.fromJson(Map<String, dynamic> json) {
+    return Player(
+      id: json['id'].toString(),
+      name: json['nome'] as String,
+      level: PlayerLevelX.fromApi(json['nivel'] as String),
+      points: json['pontos'] as int,
+      online: json['online'] as bool? ?? false,
+      distanceKm: (json['distanciaKm'] as num?)?.toDouble(),
+    );
+  }
 
   String get initials {
     final parts = name.trim().split(' ');

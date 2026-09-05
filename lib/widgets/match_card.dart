@@ -7,6 +7,7 @@ import 'status_badge.dart';
 
 class MatchCard extends StatelessWidget {
   final TennisMatch match;
+  final bool isOwner;
   final VoidCallback? onJoin;
   final VoidCallback? onDetails;
   final VoidCallback? onEdit;
@@ -15,6 +16,7 @@ class MatchCard extends StatelessWidget {
   const MatchCard({
     super.key,
     required this.match,
+    this.isOwner = false,
     this.onJoin,
     this.onDetails,
     this.onEdit,
@@ -23,7 +25,7 @@ class MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isEncerrada = match.status == MatchStatus.encerrada;
+    final isAberta = match.status == MatchStatus.aberta;
     final dateFmt = DateFormat("d 'de' MMM 'às' HH:mm", 'pt_BR');
 
     return Card(
@@ -42,9 +44,9 @@ class MatchCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (isEncerrada)
-                  const StatusBadge(
-                    label: 'Encerrada',
+                if (!isAberta)
+                  StatusBadge(
+                    label: match.status == MatchStatus.cancelada ? 'Cancelada' : 'Encerrada',
                     color: AppColors.textSecondary,
                     background: AppColors.surfaceElevated,
                   )
@@ -78,29 +80,37 @@ class MatchCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            if (isEncerrada)
+            if (isOwner)
               Row(
                 children: [
+                  if (onDetails != null) ...[
+                    Expanded(
+                      child: OutlinedButton(onPressed: onDetails, child: const Text('Ver detalhes')),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: OutlinedButton(
                       onPressed: onEdit,
                       child: const Text('Editar'),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger),
+                  if (isAberta) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.danger,
+                          side: const BorderSide(color: AppColors.danger),
+                        ),
+                        onPressed: onEnd,
+                        child: const Text('Encerrar'),
                       ),
-                      onPressed: onEnd,
-                      child: const Text('Encerrar'),
                     ),
-                  ),
+                  ],
                 ],
               )
-            else
+            else if (isAberta)
               Row(
                 children: [
                   Text(
@@ -119,6 +129,18 @@ class MatchCard extends StatelessWidget {
                     onPressed: match.isFull ? null : onJoin,
                     child: const Text('Participar'),
                   ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Text(
+                    match.status == MatchStatus.cancelada ? 'Partida cancelada' : 'Partida encerrada',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  ),
+                  const Spacer(),
+                  if (onDetails != null)
+                    TextButton(onPressed: onDetails, child: const Text('Ver detalhes')),
                 ],
               ),
           ],

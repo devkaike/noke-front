@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/conversation.dart';
+import '../../services/chat_service.dart';
+import '../../services/jogador_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/player_avatar.dart';
 
@@ -15,12 +17,18 @@ class ChatConversationScreen extends StatefulWidget {
 
 class _ChatConversationScreenState extends State<ChatConversationScreen> {
   final _controller = TextEditingController();
-  late List<ChatMessage> _messages;
+  final _chatService = ChatService();
+  final _jogadorService = JogadorService();
+
+  bool _carregando = true;
+  bool _enviando = false;
+  List<ChatMessage> _messages = [];
+  String? _meuId;
 
   @override
   void initState() {
     super.initState();
-    _messages = List.of(widget.conversation.messages);
+    _carregar();
   }
 
   @override
@@ -29,13 +37,43 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _carregar() async {
+    try {
+      final me = await _jogadorService.meuPerfil();
+      final mensagens = await _chatService.mensagens(widget.conversation.id);
+      if (!mounted) return;
+      setState(() {
+        _messages = mensagens;
+        _meuId = me.id;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _carregando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível carregar as mensagens.')),
+      );
+    }
+  }
+
+  Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(ChatMessage(text: text, time: DateTime.now(), fromMe: true));
-    });
+    if (text.isEmpty || _enviando) return;
+
+    setState(() => _enviando = true);
     _controller.clear();
+    try {
+      final mensagem = await _chatService.enviar(widget.conversation.id, text);
+      if (!mounted) return;
+      setState(() => _messages = [..._messages, mensagem]);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível enviar a mensagem.')),
+      );
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 
   @override
@@ -69,53 +107,54 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, i) {
-                final msg = _messages[_messages.length - 1 - i];
-                return Align(
-                  alignment: msg.fromMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    constraints: const BoxConstraints(maxWidth: 280),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: msg.fromMe ? AppColors.primary : AppColors.surfaceElevated,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(14),
-                        topRight: const Radius.circular(14),
-                        bottomLeft: Radius.circular(msg.fromMe ? 14 : 2),
-                        bottomRight: Radius.circular(msg.fromMe ? 2 : 14),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          msg.text,
-                          style: TextStyle(
-                            color: msg.fromMe ? Colors.black : AppColors.textPrimary,
-                            fontSize: 14,
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                : ListView.builder(
+                    reverse: true,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, i) {
+                      final msg = _messages[_messages.length - 1 - i];
+                      final fromMe = msg.remetenteId == _meuId;
+                      return Align(
+                        alignment: fromMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          constraints: const BoxConstraints(maxWidth: 280),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: fromMe ? AppColors.primary : AppColors.surfaceElevated,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(14),
+                              topRight: const Radius.circular(14),
+                              bottomLeft: Radius.circular(fromMe ? 14 : 2),
+                              bottomRight: Radius.circular(fromMe ? 2 : 14),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                msg.text,
+                                style: TextStyle(
+                                  color: fromMe ? Colors.black : AppColors.textPrimary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                timeFmt.format(msg.time),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: fromMe ? Colors.black.withValues(alpha: 0.6) : AppColors.textMuted,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          timeFmt.format(msg.time),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: msg.fromMe
-                                ? Colors.black.withValues(alpha: 0.6)
-                                : AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           SafeArea(
             top: false,

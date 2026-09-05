@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'screens/auth/auth_gate.dart';
 import 'theme/app_theme.dart';
-import 'widgets/nav_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +20,7 @@ class NokeApp extends StatelessWidget {
       theme: AppTheme.dark,
       themeMode: ThemeMode.dark,
       locale: const Locale('pt', 'BR'),
-      home: const NavShell(),
+      home: const AuthGate(),
     );
   }
 }

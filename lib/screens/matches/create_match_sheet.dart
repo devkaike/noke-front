@@ -1,26 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/match.dart';
 import '../../models/player.dart';
+import '../../services/api_exception.dart';
+import '../../services/partida_service.dart';
 import '../../theme/app_colors.dart';
 
 class CreateMatchSheet extends StatefulWidget {
-  const CreateMatchSheet({super.key});
+  final TennisMatch? existing;
+
+  const CreateMatchSheet({super.key, this.existing});
 
   @override
   State<CreateMatchSheet> createState() => _CreateMatchSheetState();
 }
 
 class _CreateMatchSheetState extends State<CreateMatchSheet> {
-  final _clubController = TextEditingController();
-  CourtType _court = CourtType.saibro;
-  PlayerLevel _level = PlayerLevel.iniciante;
-  MatchMode _mode = MatchMode.casual;
-  int _slots = 4;
+  late final _clubController = TextEditingController(text: widget.existing?.clubName ?? '');
+  final _partidaService = PartidaService();
+
+  late CourtType _court = widget.existing?.court ?? CourtType.saibro;
+  late PlayerLevel _level = widget.existing?.level ?? PlayerLevel.iniciante;
+  late MatchMode _mode = widget.existing?.mode ?? MatchMode.casual;
+  late int _slots = widget.existing?.totalSlots ?? 4;
+  late DateTime _dataHora = widget.existing?.dateTime ?? DateTime.now().add(const Duration(days: 1, hours: 1));
+  bool _salvando = false;
+
+  bool get _editando => widget.existing != null;
 
   @override
   void dispose() {
     _clubController.dispose();
     super.dispose();
+  }
+
+  Future<void> _escolherDataHora() async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: _dataHora,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (data == null || !mounted) return;
+
+    final hora = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_dataHora),
+    );
+    if (hora == null) return;
+
+    setState(() {
+      _dataHora = DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
+    });
+  }
+
+  Future<void> _salvar() async {
+    if (_clubController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe o clube ou local da partida.')),
+      );
+      return;
+    }
+
+    setState(() => _salvando = true);
+    try {
+      if (_editando) {
+        await _partidaService.atualizar(
+          widget.existing!.id,
+          clube: _clubController.text.trim(),
+          quadra: _court,
+          modo: _mode,
+          nivel: _level,
+          dataHora: _dataHora,
+          vagasTotais: _slots,
+        );
+      } else {
+        await _partidaService.criar(
+          clube: _clubController.text.trim(),
+          quadra: _court,
+          modo: _mode,
+          nivel: _level,
+          dataHora: _dataHora,
+          vagasTotais: _slots,
+        );
+      }
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_editando ? 'Não foi possível salvar as alterações.' : 'Não foi possível criar a partida.')),
+      );
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
   }
 
   @override
@@ -47,7 +123,7 @@ class _CreateMatchSheetState extends State<CreateMatchSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          Text('Criar Partida', style: Theme.of(context).textTheme.titleLarge),
+          Text(_editando ? 'Editar Partida' : 'Criar Partida', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 20),
           const Text('Clube / Local', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
@@ -94,6 +170,14 @@ class _CreateMatchSheetState extends State<CreateMatchSheet> {
             ],
           ),
           const SizedBox(height: 16),
+          const Text('Data e horário', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _escolherDataHora,
+            icon: const Icon(Icons.calendar_today_rounded, size: 16),
+            label: Text(DateFormat("d 'de' MMM 'às' HH:mm", 'pt_BR').format(_dataHora)),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               const Text('Vagas', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
@@ -113,8 +197,14 @@ class _CreateMatchSheetState extends State<CreateMatchSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Criar Partida'),
+              onPressed: _salvando ? null : _salvar,
+              child: _salvando
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : Text(_editando ? 'Salvar Alterações' : 'Criar Partida'),
             ),
           ),
         ],

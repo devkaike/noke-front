@@ -9,6 +9,21 @@ extension CourtTypeX on CourtType {
         CourtType.grama => 'Grama',
         CourtType.carpete => 'Carpete',
       };
+
+  String get apiValue => switch (this) {
+        CourtType.saibro => 'SAIBRO',
+        CourtType.quadraDura => 'QUADRA_DURA',
+        CourtType.grama => 'GRAMA',
+        CourtType.carpete => 'CARPETE',
+      };
+
+  static CourtType fromApi(String value) => switch (value) {
+        'SAIBRO' => CourtType.saibro,
+        'QUADRA_DURA' => CourtType.quadraDura,
+        'GRAMA' => CourtType.grama,
+        'CARPETE' => CourtType.carpete,
+        _ => CourtType.saibro,
+      };
 }
 
 enum MatchMode { casual, ranqueada }
@@ -18,9 +33,29 @@ extension MatchModeX on MatchMode {
         MatchMode.casual => 'Casual',
         MatchMode.ranqueada => 'Ranqueada',
       };
+
+  String get apiValue => switch (this) {
+        MatchMode.casual => 'CASUAL',
+        MatchMode.ranqueada => 'RANQUEADA',
+      };
+
+  static MatchMode fromApi(String value) => switch (value) {
+        'CASUAL' => MatchMode.casual,
+        'RANQUEADA' => MatchMode.ranqueada,
+        _ => MatchMode.casual,
+      };
 }
 
-enum MatchStatus { aberta, encerrada }
+enum MatchStatus { aberta, encerrada, cancelada }
+
+extension MatchStatusX on MatchStatus {
+  static MatchStatus fromApi(String value) => switch (value) {
+        'ABERTA' => MatchStatus.aberta,
+        'ENCERRADA' => MatchStatus.encerrada,
+        'CANCELADA' => MatchStatus.cancelada,
+        _ => MatchStatus.aberta,
+      };
+}
 
 class TennisMatch {
   final String id;
@@ -30,9 +65,10 @@ class TennisMatch {
   final PlayerLevel level;
   final DateTime dateTime;
   final int totalSlots;
-  final int filledSlots;
+  final int openSlots;
   final Player creator;
   final MatchStatus status;
+  final List<Player> participants;
 
   const TennisMatch({
     required this.id,
@@ -42,11 +78,29 @@ class TennisMatch {
     required this.level,
     required this.dateTime,
     required this.totalSlots,
-    required this.filledSlots,
+    required this.openSlots,
     required this.creator,
     this.status = MatchStatus.aberta,
+    this.participants = const [],
   });
 
-  int get openSlots => totalSlots - filledSlots;
   bool get isFull => openSlots <= 0;
+
+  factory TennisMatch.fromJson(Map<String, dynamic> json) {
+    return TennisMatch(
+      id: json['id'].toString(),
+      clubName: json['clube'] as String,
+      court: CourtTypeX.fromApi(json['quadra'] as String),
+      mode: MatchModeX.fromApi(json['modo'] as String),
+      level: PlayerLevelX.fromApi(json['nivel'] as String),
+      dateTime: DateTime.parse(json['dataHora'] as String),
+      totalSlots: json['vagasTotais'] as int,
+      openSlots: json['vagasAbertas'] as int,
+      creator: Player.fromJson(json['criador'] as Map<String, dynamic>),
+      status: MatchStatusX.fromApi(json['status'] as String),
+      participants: (json['participantes'] as List? ?? [])
+          .map((e) => Player.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
