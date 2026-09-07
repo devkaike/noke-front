@@ -53,3 +53,7 @@ android/local.properties
 ios/Flutter/Generated.xcconfig
 ios/Runner/GeneratedPluginRegistrant.*
 
+# SDK do Flutter baixado localmente durante testes de build (nunca deve
+# ser versionado — é a mesma pasta usada como cache pelo vercel.json)
+/flutter/
+
