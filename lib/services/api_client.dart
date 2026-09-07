@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_exception.dart';
@@ -9,13 +7,8 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  // No emulador Android, "localhost" aponta para o próprio dispositivo, não
-  // para a máquina host — por isso o endereço especial 10.0.2.2. Em um
-  // aparelho físico isso precisaria ser o IP da máquina na rede local.
-  static String get baseUrl {
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8080';
-    return 'http://localhost:8080';
-  }
+  // Backend em produção (Render), com PostgreSQL real (Neon).
+  static const String baseUrl = 'https://noke-back.onrender.com';
 
   static const _tokenKey = 'noke_jwt_token';
   String? _token;
