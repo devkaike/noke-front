@@ -1,5 +1,5 @@
 {
-  "buildCommand": "curl -sL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz | tar -xJ && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter config --no-analytics && flutter build web --release",
+  "buildCommand": "curl -sL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz | tar -xJ && git config --global --add safe.directory \"$(pwd)/flutter\" && export PATH=\"$PATH:$(pwd)/flutter/bin\" && flutter config --no-analytics && flutter build web --release",
   "outputDirectory": "build/web",
   "installCommand": "echo \"sem etapa de install (projeto Flutter, nao Node)\""
 }
