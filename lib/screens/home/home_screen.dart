@@ -101,12 +101,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _carregar();
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      final jaParticipa = e.message.toLowerCase().contains('já está participando');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(jaParticipa ? 'Você já faz parte dessa partida.' : e.message)),
+      );
+      _carregar();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Não foi possível entrar na partida.')),
       );
+      _carregar();
     }
   }
 
@@ -283,6 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
               for (final m in _open) ...[
                 MatchCard(
                   match: m,
+                  isParticipant: m.participants.any((p) => p.id == user.id),
                   onJoin: () => _participar(m),
                   onDetails: () => showMatchDetails(context, m.id),
                 ),

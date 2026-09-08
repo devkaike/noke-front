@@ -8,6 +8,7 @@ import 'status_badge.dart';
 class MatchCard extends StatelessWidget {
   final TennisMatch match;
   final bool isOwner;
+  final bool isParticipant;
   final VoidCallback? onJoin;
   final VoidCallback? onDetails;
   final VoidCallback? onEdit;
@@ -17,6 +18,7 @@ class MatchCard extends StatelessWidget {
     super.key,
     required this.match,
     this.isOwner = false,
+    this.isParticipant = false,
     this.onJoin,
     this.onDetails,
     this.onEdit,
@@ -113,22 +115,36 @@ class MatchCard extends StatelessWidget {
             else if (isAberta)
               Row(
                 children: [
-                  Text(
-                    match.isFull ? 'Lotada' : '${match.openSlots} vaga(s)',
-                    style: TextStyle(
-                      color: match.isFull ? AppColors.textMuted : AppColors.warning,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                  if (isParticipant) ...[
+                    const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 16),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Você já confirmou presença',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
-                  ),
+                  ] else
+                    Text(
+                      match.isFull ? 'Lotada' : '${match.openSlots} vaga(s)',
+                      style: TextStyle(
+                        color: match.isFull ? AppColors.textMuted : AppColors.warning,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
                   const Spacer(),
                   if (onDetails != null)
                     TextButton(onPressed: onDetails, child: const Text('Ver detalhes')),
-                  const SizedBox(width: 4),
-                  ElevatedButton(
-                    onPressed: match.isFull ? null : onJoin,
-                    child: const Text('Participar'),
-                  ),
+                  if (!isParticipant) ...[
+                    const SizedBox(width: 4),
+                    ElevatedButton(
+                      onPressed: match.isFull ? null : onJoin,
+                      child: const Text('Participar'),
+                    ),
+                  ],
                 ],
               )
             else

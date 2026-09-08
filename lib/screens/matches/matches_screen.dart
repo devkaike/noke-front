@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/match.dart';
 import '../../models/player.dart';
 import '../../services/api_exception.dart';
+import '../../services/jogador_service.dart';
 import '../../services/partida_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/match_card.dart';
@@ -17,6 +18,7 @@ class MatchesScreen extends StatefulWidget {
 
 class _MatchesScreenState extends State<MatchesScreen> {
   final _partidaService = PartidaService();
+  final _jogadorService = JogadorService();
 
   CourtType? _courtFilter;
   PlayerLevel? _levelFilter;
@@ -24,6 +26,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   bool _carregando = true;
   String? _erro;
   List<TennisMatch> _matches = [];
+  String? _meuId;
 
   @override
   void initState() {
@@ -37,10 +40,14 @@ class _MatchesScreenState extends State<MatchesScreen> {
       _erro = null;
     });
     try {
-      final matches = await _partidaService.abertas(quadra: _courtFilter, nivel: _levelFilter);
+      final results = await Future.wait([
+        _partidaService.abertas(quadra: _courtFilter, nivel: _levelFilter),
+        if (_meuId == null) _jogadorService.meuPerfil(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _matches = matches;
+        _matches = results[0] as List<TennisMatch>;
+        if (results.length > 1) _meuId = (results[1] as Player).id;
         _carregando = false;
       });
     } catch (_) {
@@ -80,12 +87,17 @@ class _MatchesScreenState extends State<MatchesScreen> {
       _carregar();
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      final jaParticipa = e.message.toLowerCase().contains('já está participando');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(jaParticipa ? 'Você já faz parte dessa partida.' : e.message)),
+      );
+      _carregar();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Não foi possível entrar na partida.')),
       );
+      _carregar();
     }
   }
 
@@ -210,6 +222,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                               separatorBuilder: (_, _) => const SizedBox(height: 12),
                               itemBuilder: (context, i) => MatchCard(
                                 match: _matches[i],
+                                isParticipant: _meuId != null &&
+                                    _matches[i].participants.any((p) => p.id == _meuId),
                                 onJoin: () => _participar(_matches[i]),
                                 onDetails: () => showMatchDetails(context, _matches[i].id),
                               ),

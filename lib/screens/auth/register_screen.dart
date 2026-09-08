@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app_messenger.dart';
 import '../../services/api_exception.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
@@ -39,13 +40,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _carregando = true);
     try {
+      final nome = _nomeController.text.trim();
       await _authService.registrar(
-        nome: _nomeController.text.trim(),
+        nome: nome,
         email: _emailController.text.trim(),
         senha: _senhaController.text,
       );
       if (!mounted) return;
       widget.onAuthenticated();
+      Navigator.of(context).pop();
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text('Conta criada com sucesso! Bem-vindo(a), $nome.')),
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
