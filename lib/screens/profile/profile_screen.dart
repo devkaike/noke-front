@@ -126,6 +126,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(_erro ?? 'Erro desconhecido.', style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
             OutlinedButton(onPressed: _carregar, child: const Text('Tentar novamente')),
+            const SizedBox(height: 8),
+            TextButton(onPressed: widget.onLogout, child: const Text('Sair da conta')),
           ],
         ),
       );

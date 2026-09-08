@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../app_messenger.dart';
 import '../../services/auth_service.dart';
+import '../../session_events.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/nav_shell.dart';
 import 'login_screen.dart';
@@ -20,6 +22,13 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
     _restaurarSessao();
+    sessionExpiredNotifier.addListener(_onSessionExpired);
+  }
+
+  @override
+  void dispose() {
+    sessionExpiredNotifier.removeListener(_onSessionExpired);
+    super.dispose();
   }
 
   Future<void> _restaurarSessao() async {
@@ -29,6 +38,15 @@ class _AuthGateState extends State<AuthGate> {
       _autenticado = ok;
       _carregandoSessao = false;
     });
+  }
+
+  void _onSessionExpired() {
+    if (!_autenticado) return;
+    _authService.logout();
+    setState(() => _autenticado = false);
+    rootScaffoldMessengerKey.currentState?.showSnackBar(
+      const SnackBar(content: Text('Sua sessão expirou. Faça login novamente.')),
+    );
   }
 
   void _autenticar() => setState(() => _autenticado = true);
