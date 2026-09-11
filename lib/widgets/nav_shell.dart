@@ -144,7 +144,7 @@ class _SideNavState extends State<_SideNav> {
               const Icon(Icons.sports_tennis_rounded, color: AppColors.primary, size: 26),
               const SizedBox(width: 8),
               Text(
-                'NOKE',
+                'MABOKEE',
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
@@ -239,7 +239,7 @@ class _SideNavState extends State<_SideNav> {
           const Divider(height: 1),
           const SizedBox(height: 10),
           const Text(
-            'NOKE · Tennis Network\nv1.0 · 2026',
+            'MABOKEE · Tennis Network\nv1.0 · 2026',
             style: TextStyle(color: AppColors.textMuted, fontSize: 11, height: 1.4),
           ),
         ],

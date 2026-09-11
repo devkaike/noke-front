@@ -1,11 +1,11 @@
 {
-    "name": "noke_app",
-    "short_name": "noke_app",
+    "name": "Mabokee - Tennis Network",
+    "short_name": "Mabokee",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Mabokee - Tennis Network",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

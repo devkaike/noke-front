@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/formato_resultado.dart';
 import '../models/match.dart';
 import '../models/player.dart';
+import '../services/jogador_service.dart';
 import '../services/partida_service.dart';
 import '../theme/app_colors.dart';
+import 'lancar_resultado_sheet.dart';
 import 'player_avatar.dart';
 import 'status_badge.dart';
 
@@ -30,10 +33,12 @@ class MatchDetailsSheet extends StatefulWidget {
 
 class _MatchDetailsSheetState extends State<MatchDetailsSheet> {
   final _partidaService = PartidaService();
+  final _jogadorService = JogadorService();
 
   bool _carregando = true;
   String? _erro;
   TennisMatch? _match;
+  Player? _user;
 
   @override
   void initState() {
@@ -43,10 +48,14 @@ class _MatchDetailsSheetState extends State<MatchDetailsSheet> {
 
   Future<void> _carregar() async {
     try {
-      final match = await _partidaService.detalhes(widget.matchId);
+      final results = await Future.wait([
+        _partidaService.detalhes(widget.matchId),
+        _jogadorService.meuPerfil(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _match = match;
+        _match = results[0] as TennisMatch;
+        _user = results[1] as Player;
         _carregando = false;
       });
     } catch (_) {
@@ -55,6 +64,18 @@ class _MatchDetailsSheetState extends State<MatchDetailsSheet> {
         _erro = 'Não foi possível carregar os detalhes.';
         _carregando = false;
       });
+    }
+  }
+
+  Future<void> _abrirLancarPlacar() async {
+    final match = _match;
+    if (match == null) return;
+    final salvo = await showLancarResultadoSheet(context, match);
+    if (salvo == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Placar registrado com sucesso!')),
+      );
+      _carregar();
     }
   }
 
@@ -148,7 +169,73 @@ class _MatchDetailsSheetState extends State<MatchDetailsSheet> {
                 ],
               ),
             ),
+        if (match.elegivelParaResultado) ...[
+          const SizedBox(height: 20),
+          Text('Placar do Confronto', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          Text(
+            '${match.desafiante!.name} (Desafiante) x ${match.desafiado!.name} (Desafiado)',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          if (match.resultado != null) _buildResultadoResumo(match.resultado!),
+          if (_podeLancarPlacar(match)) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _abrirLancarPlacar,
+                child: Text(match.resultado == null ? 'Lançar Placar' : 'Corrigir Placar'),
+              ),
+            ),
+          ] else if (match.resultado == null)
+            const Text('Aguardando um dos jogadores lançar o placar.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        ],
       ],
+    );
+  }
+
+  bool _podeLancarPlacar(TennisMatch match) {
+    final user = _user;
+    if (user == null) return false;
+    final souParticipante = user.id == match.desafiante?.id || user.id == match.desafiado?.id;
+    if (!souParticipante) return false;
+    return match.resultado == null || match.resultado!.corrigivel;
+  }
+
+  Widget _buildResultadoResumo(MatchResult resultado) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.emoji_events_rounded, color: AppColors.gold, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Vencedor: ${resultado.vencedor.name}',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ],
+          ),
+          if (resultado.sets.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              resultado.sets.map((s) => '${s.gamesVencedor}x${s.gamesPerdedor}').join('  '),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(resultado.formato.label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+        ],
+      ),
     );
   }
 }

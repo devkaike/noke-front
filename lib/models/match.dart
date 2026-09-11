@@ -1,4 +1,46 @@
+import 'formato_resultado.dart';
 import 'player.dart';
+
+class SetScore {
+  final int gamesVencedor;
+  final int gamesPerdedor;
+
+  const SetScore({required this.gamesVencedor, required this.gamesPerdedor});
+
+  factory SetScore.fromJson(Map<String, dynamic> json) {
+    return SetScore(
+      gamesVencedor: json['gamesVencedor'] as int,
+      gamesPerdedor: json['gamesPerdedor'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'gamesVencedor': gamesVencedor, 'gamesPerdedor': gamesPerdedor};
+}
+
+class MatchResult {
+  final FormatoResultado formato;
+  final Player vencedor;
+  final List<SetScore> sets;
+  final bool corrigivel;
+
+  const MatchResult({
+    required this.formato,
+    required this.vencedor,
+    required this.sets,
+    required this.corrigivel,
+  });
+
+  factory MatchResult.fromJson(Map<String, dynamic> json) {
+    return MatchResult(
+      formato: FormatoResultadoX.fromApi(json['formato'] as String),
+      vencedor: Player.fromJson(json['vencedor'] as Map<String, dynamic>),
+      sets: (json['sets'] as List? ?? [])
+          .map((e) => SetScore.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      corrigivel: json['corrigivel'] as bool? ?? false,
+    );
+  }
+}
 
 enum CourtType { saibro, quadraDura, grama, carpete }
 
@@ -69,6 +111,9 @@ class TennisMatch {
   final Player creator;
   final MatchStatus status;
   final List<Player> participants;
+  final Player? desafiante;
+  final Player? desafiado;
+  final MatchResult? resultado;
 
   const TennisMatch({
     required this.id,
@@ -82,9 +127,15 @@ class TennisMatch {
     required this.creator,
     this.status = MatchStatus.aberta,
     this.participants = const [],
+    this.desafiante,
+    this.desafiado,
+    this.resultado,
   });
 
   bool get isFull => openSlots <= 0;
+
+  /// Elegível para lançamento de placar de ranking (1x1, posições já congeladas).
+  bool get elegivelParaResultado => desafiante != null && desafiado != null;
 
   factory TennisMatch.fromJson(Map<String, dynamic> json) {
     return TennisMatch(
@@ -101,6 +152,11 @@ class TennisMatch {
       participants: (json['participantes'] as List? ?? [])
           .map((e) => Player.fromJson(e as Map<String, dynamic>))
           .toList(),
+      desafiante:
+          json['desafiante'] == null ? null : Player.fromJson(json['desafiante'] as Map<String, dynamic>),
+      desafiado: json['desafiado'] == null ? null : Player.fromJson(json['desafiado'] as Map<String, dynamic>),
+      resultado:
+          json['resultado'] == null ? null : MatchResult.fromJson(json['resultado'] as Map<String, dynamic>),
     );
   }
 }

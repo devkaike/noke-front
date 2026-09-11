@@ -210,7 +210,7 @@ class _BrandHeader extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         const Text(
-          'NOKE',
+          'MABOKEE',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 22,

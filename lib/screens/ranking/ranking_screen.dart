@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/player.dart';
+import '../../models/ranking_class.dart';
 import '../../services/jogador_service.dart';
 import '../../services/ranking_service.dart';
 import '../../theme/app_colors.dart';
@@ -18,8 +19,12 @@ class _RankingScreenState extends State<RankingScreen> {
 
   bool _carregando = true;
   String? _erro;
+  List<RankingEntry> _podium = [];
   List<RankingEntry> _ranking = [];
   Player? _user;
+
+  ClasseRanking? _classeFilter;
+  NivelClasse? _nivelFilter;
 
   @override
   void initState() {
@@ -35,12 +40,14 @@ class _RankingScreenState extends State<RankingScreen> {
     try {
       final results = await Future.wait([
         _rankingService.classificacao(),
+        _rankingService.classificacao(classe: _classeFilter, nivel: _nivelFilter),
         _jogadorService.meuPerfil(),
       ]);
       if (!mounted) return;
       setState(() {
-        _ranking = results[0] as List<RankingEntry>;
-        _user = results[1] as Player;
+        _podium = results[0] as List<RankingEntry>;
+        _ranking = results[1] as List<RankingEntry>;
+        _user = results[2] as Player;
         _carregando = false;
       });
     } catch (_) {
@@ -50,6 +57,19 @@ class _RankingScreenState extends State<RankingScreen> {
         _carregando = false;
       });
     }
+  }
+
+  void _selecionarClasse(ClasseRanking? classe) {
+    setState(() {
+      _classeFilter = classe;
+      if (classe == null || !classe.permiteNivel) _nivelFilter = null;
+    });
+    _carregar();
+  }
+
+  void _selecionarNivel(NivelClasse? nivel) {
+    setState(() => _nivelFilter = nivel);
+    _carregar();
   }
 
   @override
@@ -71,9 +91,10 @@ class _RankingScreenState extends State<RankingScreen> {
     }
 
     final user = _user!;
-    final podium = _ranking.take(3).toList();
+    final podium = _podium.take(3).toList();
     final minhaEntrada = _ranking.where((r) => r.player.id == user.id).toList();
     final userPosition = minhaEntrada.isEmpty ? null : minhaEntrada.first.posicao;
+    final userTier = minhaEntrada.isEmpty ? null : minhaEntrada.first;
 
     return RefreshIndicator(
       onRefresh: _carregar,
@@ -98,11 +119,55 @@ class _RankingScreenState extends State<RankingScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Acompanhe sua posição entre todos os tenistas do NOKE.',
+            'Acompanhe sua posição entre todos os tenistas do MABOKEE.',
             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
           const SizedBox(height: 20),
-          if (userPosition != null)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: 'Todas as classes',
+                  selected: _classeFilter == null,
+                  onTap: () => _selecionarClasse(null),
+                ),
+                for (final c in ClasseRanking.values) ...[
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: c.label,
+                    selected: _classeFilter == c,
+                    onTap: () => _selecionarClasse(c),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (_classeFilter != null && _classeFilter!.permiteNivel) ...[
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'Todos os níveis',
+                    selected: _nivelFilter == null,
+                    onTap: () => _selecionarNivel(null),
+                  ),
+                  for (final n in NivelClasse.values) ...[
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Nível ${n.label}',
+                      selected: _nivelFilter == n,
+                      onTap: () => _selecionarNivel(n),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          if (userPosition != null && userTier != null)
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -110,38 +175,55 @@ class _RankingScreenState extends State<RankingScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 44,
-                    alignment: Alignment.center,
-                    child: Column(
-                      children: [
-                        const Text('POS', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
-                        Text('#$userPosition',
-                            style: const TextStyle(
-                                color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 16)),
-                      ],
-                    ),
+                  Text(
+                    userTier.nivel == null
+                        ? userTier.classe.label
+                        : '${userTier.classe.label} — Nível ${userTier.nivel!.label}',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(width: 10),
-                  PlayerAvatar(player: user, size: 40),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        Text(user.level.label,
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                      ],
-                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: [
+                            const Text('POS', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                            Text('#$userPosition',
+                                style: const TextStyle(
+                                    color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 16)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      PlayerAvatar(player: user, size: 40),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            Text(user.level.label,
+                                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Text('${user.points} pts',
+                          style: const TextStyle(
+                              color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 15)),
+                    ],
                   ),
-                  Text('${user.points} pts',
-                      style: const TextStyle(
-                          color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 15)),
                 ],
               ),
+            )
+          else
+            const Text(
+              'Você ainda não tem partidas ranqueadas nesse filtro.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           const SizedBox(height: 28),
           Text('Pódio da Temporada', style: Theme.of(context).textTheme.titleMedium),
@@ -165,15 +247,47 @@ class _RankingScreenState extends State<RankingScreen> {
             children: [
               Text('Classificação Completa', style: Theme.of(context).textTheme.titleMedium),
               const Spacer(),
-              const Text('Top jogadores', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text(
+                _classeFilter == null ? 'Todos os jogadores' : 'Filtro aplicado',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          for (final entry in _ranking) ...[
-            _RankRow(position: entry.posicao, player: entry.player, isMe: entry.player.id == user.id),
-            const SizedBox(height: 8),
-          ],
+          if (_ranking.isEmpty)
+            const Text('Nenhum jogador encontrado com esse filtro.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+          else
+            for (final entry in _ranking) ...[
+              _RankRow(position: entry.posicao, player: entry.player, isMe: entry.player.id == user.id),
+              const SizedBox(height: 8),
+            ],
         ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: AppColors.primaryContainer,
+      backgroundColor: AppColors.surfaceElevated,
+      side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primary : AppColors.textSecondary,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12,
       ),
     );
   }
