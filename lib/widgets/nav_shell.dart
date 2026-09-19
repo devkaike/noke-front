@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/player.dart';
 import '../screens/chat/chat_list_screen.dart';
+import '../screens/clubs/clubs_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/matches/matches_screen.dart';
 import '../screens/players/players_screen.dart';
@@ -39,6 +40,8 @@ class _NavShellState extends State<NavShell> {
         const MatchesScreen()),
     _NavDestinationData(Icons.people_alt_outlined, Icons.people_alt_rounded, 'Jogadores',
         const PlayersScreen()),
+    _NavDestinationData(Icons.storefront_outlined, Icons.storefront_rounded, 'Clubes',
+        const ClubsScreen()),
     _NavDestinationData(
         Icons.emoji_events_outlined, Icons.emoji_events_rounded, 'Ranking', const RankingScreen()),
     _NavDestinationData(

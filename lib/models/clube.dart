@@ -31,6 +31,8 @@ class Clube {
   final String? motivoRejeicao;
   final DateTime criadoEm;
   final DateTime? avaliadoEm;
+  /// Só preenchido quando vem do endpoint de detalhe (GET /clubes/publicos/{id}).
+  final List<Quadra>? quadras;
 
   const Clube({
     required this.id,
@@ -46,6 +48,7 @@ class Clube {
     this.motivoRejeicao,
     required this.criadoEm,
     this.avaliadoEm,
+    this.quadras,
   });
 
   String get enderecoCompleto => '$rua, $numero - $bairro, $cidade/$estado';
@@ -65,6 +68,9 @@ class Clube {
       motivoRejeicao: json['motivoRejeicao'] as String?,
       criadoEm: DateTime.parse(json['criadoEm'] as String),
       avaliadoEm: json['avaliadoEm'] == null ? null : DateTime.parse(json['avaliadoEm'] as String),
+      quadras: json['quadras'] == null
+          ? null
+          : (json['quadras'] as List).map((e) => Quadra.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 }
