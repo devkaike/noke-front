@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_exception.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
+import 'register_clube_screen.dart';
 import 'register_screen.dart';
 import 'widgets/google_button.dart';
 
@@ -69,6 +70,14 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RegisterScreen(onAuthenticated: widget.onAuthenticated),
+      ),
+    );
+  }
+
+  void _irParaCriarContaClube() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RegisterClubeScreen(onAuthenticated: widget.onAuthenticated),
       ),
     );
   }
@@ -177,6 +186,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Text('Não tem conta?',
                             style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
                         TextButton(onPressed: _irParaCriarConta, child: const Text('Criar conta')),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('É dono de um clube?',
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                        TextButton(
+                            onPressed: _irParaCriarContaClube, child: const Text('Cadastrar meu clube')),
                       ],
                     ),
                   ],

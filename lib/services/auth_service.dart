@@ -4,13 +4,15 @@ import 'jogador_service.dart';
 class AuthService {
   final ApiClient _client = ApiClient.instance;
 
+  String? get perfil => _client.perfil;
+
   Future<void> login({required String email, required String senha}) async {
     final data = await _client.post(
       '/auth/login',
       auth: false,
       body: {'email': email, 'senha': senha},
     );
-    await _client.saveToken(data['token'] as String);
+    await _client.saveToken(data['token'] as String, perfil: data['perfil'] as String?);
   }
 
   Future<void> registrar({
@@ -20,6 +22,19 @@ class AuthService {
   }) async {
     await _client.post(
       '/auth/registrar',
+      auth: false,
+      body: {'nome': nome, 'email': email, 'senha': senha},
+    );
+    await login(email: email, senha: senha);
+  }
+
+  Future<void> registrarClube({
+    required String nome,
+    required String email,
+    required String senha,
+  }) async {
+    await _client.post(
+      '/auth/registrar-clube',
       auth: false,
       body: {'nome': nome, 'email': email, 'senha': senha},
     );

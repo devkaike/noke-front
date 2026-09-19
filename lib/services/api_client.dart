@@ -12,23 +12,32 @@ class ApiClient {
   static const String baseUrl = 'https://noke-back.onrender.com';
 
   static const _tokenKey = 'noke_jwt_token';
+  static const _perfilKey = 'noke_user_perfil';
   String? _token;
+  String? _perfil;
+
+  String? get perfil => _perfil;
 
   Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(_tokenKey);
+    _perfil = prefs.getString(_perfilKey);
   }
 
-  Future<void> saveToken(String token) async {
+  Future<void> saveToken(String token, {String? perfil}) async {
     _token = token;
+    _perfil = perfil;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
+    if (perfil != null) await prefs.setString(_perfilKey, perfil);
   }
 
   Future<void> clearToken() async {
     _token = null;
+    _perfil = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_perfilKey);
   }
 
   bool get isAuthenticated => _token != null;
@@ -61,6 +70,11 @@ class ApiClient {
       headers: _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
+    return _handle(response, auth: auth);
+  }
+
+  Future<dynamic> delete(String path, {bool auth = true}) async {
+    final response = await http.delete(Uri.parse('$baseUrl$path'), headers: _headers(auth: auth));
     return _handle(response, auth: auth);
   }
 

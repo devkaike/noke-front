@@ -4,6 +4,8 @@ import '../../services/auth_service.dart';
 import '../../session_events.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/nav_shell.dart';
+import '../admin/admin_clubs_screen.dart';
+import '../clube/club_shell.dart';
 import 'login_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -71,6 +73,11 @@ class _AuthGateState extends State<AuthGate> {
     if (!_autenticado) {
       return LoginScreen(onAuthenticated: _autenticar);
     }
-    return NavShell(onLogout: _sair);
+
+    return switch (_authService.perfil) {
+      'CLUBE' => ClubShell(onLogout: _sair),
+      'ADMIN' => AdminClubsScreen(onLogout: _sair),
+      _ => NavShell(onLogout: _sair),
+    };
   }
 }
